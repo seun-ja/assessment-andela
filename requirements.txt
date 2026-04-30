@@ -1,1 +1,5 @@
+gradio
+openai
+python-dotenv
+httpx
 mcp
