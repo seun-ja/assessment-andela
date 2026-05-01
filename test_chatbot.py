@@ -1,4 +1,4 @@
-import pytest
+import pytest #type: ignore
 from unittest.mock import AsyncMock, patch
 from chatbot import MeridianSupportAgent
 
