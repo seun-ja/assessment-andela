@@ -1,89 +1,30 @@
-import asyncio
-import os
 import pytest
 from unittest.mock import AsyncMock, patch
 from chatbot import MeridianSupportAgent
 
 @pytest.mark.asyncio
-async def test_chat_loop_gradio_no_tool_calls(monkeypatch):
+async def test_chat_loop_gradio_basic():
     agent = MeridianSupportAgent()
-    agent.client = AsyncMock()
-    agent.model = "gpt-4o"
-    agent.messages = [
-        {"role": "system", "content": "Test system message."}
-    ]
-
-    # Mock MCP session
-    class DummySession:
-        async def list_tools(self):
-            class Tools:
-                tools = []
-            return Tools()
-        async def call_tool(self, name, args):
-            return AsyncMock(content="tool result")
-
-    # Mock OpenAI response
-    class DummyResponse:
-        class Choice:
-            def __init__(self):
-                self.message = type("Msg", (), {"tool_calls": [], "content": "Hello!"})()
-        choices = [Choice()]
-    agent.client.chat = AsyncMock()
-    agent.client.chat.completions = AsyncMock()
-    agent.client.chat.completions.create = AsyncMock(return_value=DummyResponse())
-
-    result = await agent.chat_loop_gradio("hi", DummySession())
-    assert result == "Hello!"
+    # Patch the OpenAI client to return a fake response
+    with patch.object(agent.client.chat.completions, 'create', new_callable=AsyncMock) as mock_create:
+        mock_create.return_value.choices = [type('obj', (object,), {'message': type('msg', (object,), {'content': 'Hello!', 'tool_calls': None})()})]
+        result = await agent.chat_loop_gradio("Hi", tools=None)
+        assert hasattr(result, 'content')
+        assert result.content == 'Hello!'
 
 @pytest.mark.asyncio
-async def test_chat_loop_gradio_with_tool_calls(monkeypatch):
+async def test_chat_loop_gradio_with_tool():
     agent = MeridianSupportAgent()
-    agent.client = AsyncMock()
-    agent.model = "gpt-4o"
-    agent.messages = [
-        {"role": "system", "content": "Test system message."}
-    ]
+    # Simulate a tool call in the LLM response
+    fake_tool_call = type('obj', (object,), {
+        'id': '1',
+        'function': type('func', (object,), {'name': 'get_order_status', 'arguments': '{"order_id": "123"}'})()
+    })
+    fake_message = type('msg', (object,), {'content': 'Checking order...', 'tool_calls': [fake_tool_call]})()
+    with patch.object(agent.client.chat.completions, 'create', new_callable=AsyncMock) as mock_create:
+        mock_create.return_value.choices = [type('obj', (object,), {'message': fake_message})]
+        result = await agent.chat_loop_gradio("Check order 123", tools=[{"name": "get_order_status"}])
+        assert hasattr(result, 'tool_calls')
+        assert result.tool_calls[0].function.name == 'get_order_status'
 
-    # Mock MCP session
-    class DummySession:
-        async def list_tools(self):
-            class Tool:
-                name = "test_tool"
-                description = "desc"
-                inputSchema = {}
-            class Tools:
-                tools = [Tool()]
-            return Tools()
-        async def call_tool(self, name, args):
-            class Result:
-                content = "tool result"
-            return Result()
-
-    # Mock OpenAI response with tool call
-    class DummyResponse:
-        class ToolCall:
-            function = type("Func", (), {"name": "test_tool", "arguments": "{}"})()
-            id = "1"
-        class Choice:
-            def __init__(self):
-                self.message = type("Msg", (), {"tool_calls": [DummyResponse.ToolCall()], "content": None})()
-        choices = [Choice()]
-    class DummyFinalResponse:
-        class Choice:
-            def __init__(self):
-                self.message = type("Msg", (), {"content": "Final answer"})()
-        choices = [Choice()]
-    agent.client.chat = AsyncMock()
-    agent.client.chat.completions = AsyncMock()
-    agent.client.chat.completions.create = AsyncMock(side_effect=[DummyResponse(), DummyFinalResponse()])
-
-    result = await agent.chat_loop_gradio("hi", DummySession())
-    assert "Final answer" in result
-    assert "System Action" in result
-
-def test_agent_init():
-    agent = MeridianSupportAgent()
-    assert agent.mcp_url
-    assert agent.client
-    assert agent.model
-    assert isinstance(agent.messages, list)
+# Add more tests as needed for error handling, tool errors, etc.

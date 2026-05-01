@@ -1,11 +1,7 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
+__pycache__
+bin
+lib
+tools_discovered.json
+CACHEDIR.TAG
 .env
+.lock

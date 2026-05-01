@@ -1,3 +1,14 @@
+---
+title: Poc Mcp
+emoji: 📚
+colorFrom: red
+colorTo: blue
+sdk: gradio
+sdk_version: 6.13.0
+app_file: app.py
+pinned: false
+---
+
 # Meridian Electronics AI Support Chatbot
 
 This project is a production-ready prototype for a customer support chatbot for Meridian Electronics. It connects to an MCP server to access internal tools for order management, inventory, and customer authentication, and provides a user-friendly chat interface using Gradio.
@@ -16,6 +27,12 @@ This project is a production-ready prototype for a customer support chatbot for 
    ```bash
    pip install -r requirements.txt
    ```
+
+2. **Run tests**
+   ```bash
+   pytest test_chatbot.py
+   ```
+   (Requires pytest: `pip install pytest`)
 
 2. **Set environment variables**
    - Create a `.env` file with your OpenRouter/OpenAI API key:
@@ -36,7 +53,7 @@ This project is a production-ready prototype for a customer support chatbot for 
 - `main.py` — Entry point, Gradio UI, async handler
 - `chatbot.py` — MeridianSupportAgent logic, LLM/tool orchestration
 - `tools.py` — (Optional) MCP stream debug utilities
-- `test_chatbot.py` — Unit tests for core logic
+- `test_chatbot.py` — Unit tests for chatbot and tool orchestration
 - `requirements.txt` — Python dependencies
 - `.env` — API keys (not committed)
 
